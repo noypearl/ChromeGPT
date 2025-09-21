@@ -1,6 +1,9 @@
 # ChromeGPT - Chrome Extension ✨
 
 A powerful Chrome extension that brings ChatGPT's intelligence directly to your browser with advanced agentic capabilities. Chat with AI and perform actions on web pages using natural language commands.
+<br><br>
+<img width="360" height="800" alt="image" src="https://github.com/user-attachments/assets/2784c016-8094-4972-9b8d-7495db2ce367" />
+
 
 ## 🚀 Features
 
