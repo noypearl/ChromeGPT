@@ -257,19 +257,130 @@ class ChatSidebar {
     addMessage(content, role) {
         const messageElement = document.createElement('div');
         messageElement.className = `message ${role}`;
-        messageElement.textContent = content;
+        
+        // Check if content is long and is from assistant
+        const isLongContent = content.length > 1000;
+        const isAssistant = role === 'assistant';
+        
+        if (isLongContent && isAssistant) {
+            // For long assistant messages, show truncated version with expand button
+            const truncatedContent = content.substring(0, 1000) + '...';
+            
+            messageElement.innerHTML = `
+                <div class="message-content">${this.formatContent(truncatedContent)}</div>
+                <button class="expand-btn">
+                    📖 Expand full response
+                </button>
+            `;
+            
+            // Add event listener to expand button
+            const expandBtn = messageElement.querySelector('.expand-btn');
+            expandBtn.addEventListener('click', () => {
+                this.showFullResponse(content);
+            });
+        } else {
+            // For short messages or user messages, show normally
+            messageElement.innerHTML = `<div class="message-content">${this.formatContent(content)}</div>`;
+        }
         
         this.chatContainer.appendChild(messageElement);
         this.scrollToBottom();
         
         return messageElement;
     }
+    
+    formatContent(content) {
+        // Basic markdown-like formatting
+        let formatted = content
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+            .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
+            .replace(/`(.*?)`/g, '<code>$1</code>') // Inline code
+            .replace(/\n/g, '<br>'); // Line breaks
+        
+        // Handle code blocks
+        formatted = formatted.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+        
+        return formatted;
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML.replace(/'/g, '&apos;');
+    }
+    
+    showFullResponse(content) {
+        console.log('📖 Sidebar: Showing full response popup');
+        
+        // Create popup overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'response-overlay';
+        overlay.innerHTML = `
+            <div class="response-popup">
+                <div class="response-header">
+                    <h3>📖 Full Response</h3>
+                    <button class="close-popup">
+                        ✕
+                    </button>
+                </div>
+                <div class="response-body">
+                    ${this.formatContent(content)}
+                </div>
+                <div class="response-footer">
+                    <button class="copy-btn">
+                        📋 Copy Text
+                    </button>
+                    <button class="close-btn">
+                        Close
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Add event listeners
+        const closePopupBtn = overlay.querySelector('.close-popup');
+        const closeBtnFooter = overlay.querySelector('.close-btn');
+        const copyBtn = overlay.querySelector('.copy-btn');
+        
+        const closeHandler = () => {
+            overlay.remove();
+        };
+        
+        closePopupBtn.addEventListener('click', closeHandler);
+        closeBtnFooter.addEventListener('click', closeHandler);
+        
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(content);
+                copyBtn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = '📋 Copy Text';
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text:', err);
+                copyBtn.textContent = '❌ Copy failed';
+                setTimeout(() => {
+                    copyBtn.textContent = '📋 Copy Text';
+                }, 2000);
+            }
+        });
+        
+        // Add click outside to close
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+            }
+        });
+        
+        document.body.appendChild(overlay);
+        console.log('✅ Sidebar: Popup added to DOM');
+    }
 
     addLoadingMessage() {
         const loadingElement = document.createElement('div');
         loadingElement.className = 'message assistant loading';
         loadingElement.innerHTML = `
-            <span>Thinking</span>
+            <span>Thinking...</span>
             <div class="loading-dots">
                 <span></span>
                 <span></span>
@@ -423,6 +534,6 @@ class ChatSidebar {
 // Initialize the sidebar when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Sidebar: Initializing ChromeGPT sidebar...');
-    new ChatSidebar();
+    window.chatSidebar = new ChatSidebar();
     console.log('✅ Sidebar: ChromeGPT sidebar initialized!');
 });
